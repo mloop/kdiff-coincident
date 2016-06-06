@@ -1,0 +1,46 @@
+#!/bin/bash
+#$ -cwd
+#$ -j n
+#$ -N stitch
+#$ -e stitch.err
+#$ -o stitch.out
+#$ -l h_rt=2:00:00
+#$ -l vf=5G
+
+. /etc/profile.d/modules.sh
+
+# Purpose: stitch results together into one file
+
+# Author: Matthew Shane Loop
+
+output_file_format="results-*-*.txt"
+
+# $file_count variable value must match 18*number of iterations
+file_count=$(ls $output_file_format | wc -l)
+if (( $file_count != $(expr 18\*1000) )); then
+    echo "Number of files not expected."
+    exit 0
+fi
+
+# Checking that number of rows in each output file from simulate.R is correct.
+# The only possible value should be 5
+for f in $output_file_format; do
+    lc=`wc -l < $f`
+    {
+    if (( $lc != 7 )); then
+    	echo "Error in $f: line count = $lc"
+		exit 0
+	fi
+	}
+done
+
+# Merge files
+echo "merging the outputs ...."
+touch results.txt
+grep -v [1] < results-1-1.txt | cat > results.txt
+for f in $output_file_format; do
+    grep -v ["c"] < $f | cat >> results.txt
+	rm $f
+done
+echo "Done"
+date
