@@ -1,0 +1,19 @@
+#!/bin/bash
+#$ -cwd
+#$ -j n
+#$ -N genesis
+#$ -e genesis.err
+#$ -o genesis.out
+#$ -l h_rt=48:00:00
+#$ -t 1-1000
+#$ -tc 500
+#$ -l vf=5G
+
+. /etc/profile.d/modules.sh
+
+module load R
+#$ -v PATH,R_HOME,R_LIBS,LD_LIBRARY_PATH,CWD
+
+date
+R CMD BATCH --no-save --no-restore '--args i='$SGE_TASK_ID genesis.R
+date
