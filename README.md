@@ -1,0 +1,1 @@
+# kdiff-coincident
