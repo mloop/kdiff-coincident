@@ -1,0 +1,54 @@
+#!/bin/bash
+#$ -cwd
+#$ -j n
+#$ -N check-datasets
+#$ -e check-datasets.err
+#$ -o check-datasets.out
+#$ -l h_rt=1:00:00
+#$ -l vf=2G
+
+. /etc/profile.d/modules.sh
+
+date
+iterations=1000
+conditions=$( expr $(wc -l < conditions.txt) - 1)
+cd datasets/
+count=$(ls | wc -l)
+if (( count != $conditions )); then
+	echo "Number of condition folders not equal to the number of conditions in simulation"
+	exit 0
+fi
+folders=c-*/
+for f in $folders; do
+	cd $f
+
+	iteration_count=$(ls | wc -l)
+	if (( $iteration_count != $iterations )); then
+		echo "Number of iteration folders not equal to number of iterations"
+		exit 0
+	fi
+	iteration_folders=*/
+	for g in $iteration_folders; do
+		cd $g
+		files=$(ls | wc -l)
+		if (( $files != 6 )); then
+			echo "Not 6 datasets in this iteration"
+			exit 0
+		fi
+		true=$(wc -l < true.txt)
+		jittered_0_05=$(wc -l < jittered-0-05.txt)
+		jittered_0_1=$(wc -l < jittered-0-1.txt)
+		jittered_0_15=$(wc -l < jittered-0-15.txt)
+		if (( $true != $jittered_0_05 ) | ( $true != $jittered_0_1 ) | ( $true != $jittered_0_15 )); then
+			echo "True and at least 1 jittered datasets aren't the same length in
+iteration $g"
+			exit 0
+		fi
+		cd ..
+	done
+cd ..
+done
+
+echo "Number of datasets equal to number of iterations"
+
+date
