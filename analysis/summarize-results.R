@@ -12,6 +12,7 @@ library(ggplot2)
 library(RColorBrewer)
 library(boot)
 library(cowplot)
+library(devtools)
 
 ## User-defined functions
 bias_function <- function(data, indices) {
@@ -47,6 +48,7 @@ bias <- results %>%
 ## Removed
 bias_a <- bias %>%
   filter(form == 'true' | form == 'removed' | form == 'snapped') %>%
+  mutate(form = factor(form, levels = c("true", "snapped", "removed"))) %>%
   mutate(
     form = ifelse(form == "removed", "Removed overlapping points",
                   ifelse(form == "snapped", "Overlapping points", "Original data set"))
@@ -55,7 +57,7 @@ bias_a <- bias %>%
 p_removed <- ggplot(data = filter(bias_a), aes(x = mismeasurement_probability, y = bias_estimate, color = form)) + 
   geom_pointrange(aes(ymin = bias_lower, ymax = bias_upper), position = position_dodge(width = 0.04)) + 
   geom_text(data = filter(bias_a, mismeasurement_probability == 0.5, form == "Overlapping points"), aes(x = mismeasurement_probability + 0.25, y = bias_estimate, label = paste(percent_bias, "% bias", sep = ""))) +
-  scale_color_manual(values = c("red", "blue", "orange"), name = "") +
+  scale_color_manual(values = c("red", "blue", "light green"), name = "") +
   facet_wrap(~ range, labeller = "label_both") +
   xlab("Proportion of overlapping points") +
   ylab("Bias") +
@@ -68,6 +70,7 @@ p_removed <- ggplot(data = filter(bias_a), aes(x = mismeasurement_probability, y
 bias_b <- bias %>%
   filter(form == 'true' | form == 'jittered_0_05' | form == 'jittered_0_1' | form == 'jittered_0_15' | form == 'snapped') %>%
   mutate(
+    form = factor(form, levels = c("true", "snapped", 'jittered_0_05', 'jittered_0_1', 'jittered_0_15')),
     form = ifelse(form == "jittered_0_05", "Jittered with radius 0.05",
                   ifelse(form == "jittered_0_1", "Jittered with radius 0.1", 
                          ifelse(form == "jittered_0_15", "Jittered with radius 0.15",
@@ -78,7 +81,7 @@ p_jittered <- ggplot(data = bias_b, aes(x = mismeasurement_probability, y = bias
   geom_pointrange(aes(ymin = bias_lower, ymax = bias_upper), position = position_dodge(width = 0.04)) + 
   #geom_line() + 
   geom_text(data = filter(bias_a, mismeasurement_probability == 0.5, form == "Overlapping points"), aes(x = mismeasurement_probability + 0.25, y = bias_estimate, label = paste(percent_bias, "% bias", sep = ""))) +
-  scale_color_manual(values = c("purple", "black", "orange", "red", "blue"), name = "") +
+  scale_color_manual(values = c("orange", "purple", "light green", "red", "blue"), name = "") +
   facet_wrap(~ range, labeller = "label_both") +
   xlab("Proportion of overlapping points") +
   ylab("Bias") +
@@ -91,9 +94,15 @@ p <- plot_grid(p_removed, p_jittered, ncol = 1, labels = c("A", "B"))
 
 save_plot("bias-prevented.png",
        p,
-       dpi = 600,
+       dpi = 300,
        base_width = 10,
        base_height = 10)
+
+save_plot("bias-prevented.tiff",
+          p,
+          dpi = 300,
+          base_width = 10,
+          base_height = 10)
 
 ## Power
 
@@ -125,7 +134,7 @@ p_removed <- ggplot(data = power_removed, aes(x = mismeasurement_probability, y 
                       ymax = (power + 1.96 * sqrt(power * (1 - power) / 1000)) * 100)) + 
   geom_line() + 
   geom_text(data = filter(power_improvement, mismeasurement_probability == 0.5), aes(x = mismeasurement_probability + 0.05, y = removed * 100 - 6, label = paste("Removing points improved\n power by ", round(removed - snapped, digits = 2) * 100, " percentage points", sep = "")), color = "black", size = 3) +
-  scale_color_manual(values = c("red", "blue", "orange"), name = "") +
+  scale_color_manual(values = c("red", "blue", "light green"), name = "") +
   facet_wrap(~ range, labeller = "label_both") +
   xlab("Proportion of overlapping points") +
   ylab("Power (%)") +
@@ -165,7 +174,7 @@ p_jittered <- ggplot(data = power_jittered, aes(x = mismeasurement_probability, 
                       ymax = (power + 1.96 * sqrt(power * (1 - power) / 1000)) * 100)) + 
   geom_line() + 
   geom_text(data = filter(power_improvement, mismeasurement_probability == 0.5), aes(x = mismeasurement_probability + 0.04, y = jittered_0_15 * 100 - 8, label = paste("Jittering with radius 0.15\n improved power by ", round(jittered_0_15 - snapped, digits = 2) * 100, " percentage points", sep = "")), color = "black", size = 3) +
-  scale_color_manual(values = c("purple", "black", "orange", "red", "blue"), name = "") +
+  scale_color_manual(values = c("orange", "purple", "light green", "red", "blue"), name = "") +
   facet_wrap(~ range, labeller = "label_both") +
   xlab("Proportion of overlapping points") +
   ylab("Power (%)") +
@@ -178,7 +187,12 @@ p <- plot_grid(p_removed, p_jittered, ncol = 1, labels = c("A", "B"))
 
 save_plot("power-losses-prevented.png",
           p,
-          dpi = 600,
+          dpi = 300,
+          base_width = 10,
+          base_height = 10)
+save_plot("power-losses-prevented.tiff",
+          p,
+          dpi = 300,
           base_width = 10,
           base_height = 10)
 
@@ -223,3 +237,6 @@ p <- ggdraw() +
   draw_plot(jittered_0_05_vs_true, 0, 0, 0.3, 0.5) +
   draw_plot(jittered_0_1_vs_true, 0.3, 0, 0.6, 0.5) +
   draw_plot(jittered_0_15_vs_true, 0.6, 0, 1, 0.5)
+
+# Reproducibility
+session_info()
